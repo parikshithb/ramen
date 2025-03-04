@@ -8,16 +8,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ramendr/ramen/e2e/config"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-const (
-	ramenSystemNamespace = "ramen-system"
 )
 
 func ValidateRamenHubOperator(cluster Cluster) error {
@@ -78,7 +75,7 @@ func GetRamenNameSpace(cluster Cluster) (string, error) {
 		return "openshift-operators", nil
 	}
 
-	return ramenSystemNamespace, nil
+	return config.GetDRNamespaces().RamenHubNamespace, nil
 }
 
 // IsOpenShiftCluster checks if the given Kubernetes cluster is an OpenShift cluster.

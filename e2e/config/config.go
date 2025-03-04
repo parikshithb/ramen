@@ -12,9 +12,13 @@ import (
 )
 
 const (
-	defaultChannelNamespace = "e2e-gitops"
-	defaultGitURL           = "https://github.com/RamenDR/ocm-ramen-samples.git"
-	defaultGitBranch        = "main"
+	defaultChannelNamespace   = "e2e-gitops"
+	defaultGitURL             = "https://github.com/RamenDR/ocm-ramen-samples.git"
+	defaultGitBranch          = "main"
+	defaultRamenHubNamespace  = "ramen-system"
+	defaultDRClusterNamespace = "ramen-system"
+	defaultRamenopsNamespace  = "ramen-ops"
+	defaultArgocdNamespace    = "argocd"
 )
 
 // Channel defines the name and namespace for the channel CR.
@@ -31,6 +35,15 @@ type Repo struct {
 	Branch string
 }
 
+// DRNamespaces defines the user-configurable namespace names required
+// for RamenDR to run e2e tests.
+type DRNamespaces struct {
+	RamenHubNamespace  string
+	DRClusterNamespace string
+	RamenOpsNamespace  string
+	ArgocdNamespace    string
+}
+
 type PVCSpec struct {
 	Name                 string
 	StorageClassName     string
@@ -45,9 +58,10 @@ type Cluster struct {
 
 type Config struct {
 	// User configurable values.
-	Repo     Repo
-	Clusters map[string]Cluster
-	PVCSpecs []PVCSpec
+	Repo         Repo
+	DRNamespaces DRNamespaces
+	Clusters     map[string]Cluster
+	PVCSpecs     []PVCSpec
 
 	// Generated values
 	Channel Channel
@@ -62,6 +76,10 @@ var (
 func ReadConfig(configFile string) error {
 	viper.SetDefault("Repo.URL", defaultGitURL)
 	viper.SetDefault("Repo.Branch", defaultGitBranch)
+	viper.SetDefault("DRNamespaces.RamenHubNamespace", defaultRamenHubNamespace)
+	viper.SetDefault("DRNamespaces.DRClusterNamespace", defaultDRClusterNamespace)
+	viper.SetDefault("DRNamespaces.RamenOpsNamespace", defaultRamenopsNamespace)
+	viper.SetDefault("DRNamespaces.ArgocdNamespace", defaultArgocdNamespace)
 
 	viper.SetConfigFile(configFile)
 
@@ -109,6 +127,10 @@ func GetGitURL() string {
 
 func GetGitBranch() string {
 	return config.Repo.Branch
+}
+
+func GetDRNamespaces() DRNamespaces {
+	return config.DRNamespaces
 }
 
 func GetPVCSpecs() []PVCSpec {

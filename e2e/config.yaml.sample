@@ -7,6 +7,13 @@ repo:
   url: "https://github.com/RamenDR/ocm-ramen-samples.git"
   branch: main
 
+# Namespace configurations for RamenDR.
+drNamespaces:
+  ramenhubNamespace: ramen-system
+  drclusterNamespace: ramen-system
+  ramenopsNamespace: ramen-ops
+  argocdNamespace: argocd
+
 # List of PVC specifications for workloads.
 # These define storage configurations, such as 'storageClassName' and
 # 'accessModes', and are used to kustomize workloads.
