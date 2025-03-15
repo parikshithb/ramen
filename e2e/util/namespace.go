@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 
+	"github.com/ramendr/ramen/e2e/config"
 	"github.com/ramendr/ramen/e2e/types"
 )
 
@@ -127,4 +128,20 @@ func addNamespaceAnnotationForVolSync(cluster types.Cluster, namespace string, l
 		namespace, volsyncPrivilegedMovers, annotations[volsyncPrivilegedMovers], cluster.Name)
 
 	return nil
+}
+
+// CreateNamespaces sets up namespaces for discovered app protection based on the Kubernetes distribution.
+// Returns an error if the distribution is unknown, also if namespace creation or annotation fails.
+func CreateNamespaces(ctx types.Context, namespace string, log *zap.SugaredLogger) error {
+	switch ctx.Config().Distro {
+	case config.DistroK8s:
+		// For Kubernetes, creates namespaces and adds annotation on both DR clusters for
+		// volsync based replication.
+		return CreateNamespaceAndAddAnnotation(ctx.Env(), namespace, log)
+	case config.DistroOcp:
+		// For OpenShift, creates namespace only on the target DR cluster (c2) before failover.
+		return CreateNamespace(ctx.Env().C2, namespace, log)
+	default:
+		return fmt.Errorf("unknown distro: %s", ctx.Config().Distro)
+	}
 }

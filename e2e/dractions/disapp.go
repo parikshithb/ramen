@@ -47,6 +47,10 @@ func EnableProtectionDiscoveredApps(ctx types.Context) error {
 		return err
 	}
 
+	if err := util.CreateNamespaces(ctx, appNamespace, log); err != nil {
+		return err
+	}
+
 	// wait for drpc ready
 	err := waitDRPCReady(ctx, managementNamespace, drpcName)
 	if err != nil {

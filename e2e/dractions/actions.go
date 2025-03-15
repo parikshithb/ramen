@@ -8,6 +8,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/util/retry"
 
+	e2econfig "github.com/ramendr/ramen/e2e/config"
 	"github.com/ramendr/ramen/e2e/types"
 	"github.com/ramendr/ramen/e2e/util"
 )
@@ -22,7 +23,7 @@ const (
 // Determine PVC label selector
 // Determine KubeObjectProtection requirements if Imperative (?)
 // Create DRPC, in desired namespace
-// nolint:funlen
+// nolint:funlen,cyclop
 func EnableProtection(ctx types.Context) error {
 	d := ctx.Deployer()
 	if d.IsDiscovered() {
@@ -79,9 +80,11 @@ func EnableProtection(ctx types.Context) error {
 		return err
 	}
 
-	// For volsync based replication we must create the cluster namespaces with special annotation.
-	if err := util.CreateNamespaceAndAddAnnotation(ctx.Env(), ctx.AppNamespace(), log); err != nil {
-		return err
+	// For Kubernetes, creates namespaces and adds annotation on both DR clusters for volsync based replication.
+	if config.Distro == e2econfig.DistroK8s {
+		if err := util.CreateNamespaceAndAddAnnotation(ctx.Env(), appNamespace, log); err != nil {
+			return err
+		}
 	}
 
 	err = waitDRPCReady(ctx, managementNamespace, drpcName)
