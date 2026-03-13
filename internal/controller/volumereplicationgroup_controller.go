@@ -756,7 +756,7 @@ func (v *VRGInstance) updateAsyncPVCs(pvcList *corev1.PersistentVolumeClaimList)
 	}
 
 	if offloaded {
-		return nil
+		return v.processGloballyOffloadedPVCs(pvcList)
 	}
 
 	// Separate PVCs targeted for VolRep from PVCs targeted for VolSync
