@@ -1635,6 +1635,8 @@ func (v *VRGInstance) checkVRStatus(pvcs []*corev1.PersistentVolumeClaim, volRep
 //     deleted safely.
 //   - Primary VRG: Validated condition is checked, and if successful the Completed conditions is also checked.
 //   - Secondary VRG: Completed, Degraded and Resyncing conditions are checked and ensured healthy.
+//
+//nolint:gocognit,cyclop
 func (v *VRGInstance) validateVRStatus(pvcs []*corev1.PersistentVolumeClaim, volRep client.Object,
 	state ramendrv1alpha1.ReplicationState, status *volrep.VolumeReplicationStatus,
 ) bool {
@@ -1654,6 +1656,10 @@ func (v *VRGInstance) validateVRStatus(pvcs []*corev1.PersistentVolumeClaim, vol
 			// The condition is stale or unknown so we need to check again later.
 			return false
 		}
+	}
+
+	if v.hasGlobalVGRLabel() && v.validateGlobalVGRStatus(volRep, pvcs, status, state) {
+		return true
 	}
 
 	// Check completed for both primary and secondary.

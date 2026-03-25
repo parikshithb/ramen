@@ -199,3 +199,45 @@ func (v *VRGInstance) setGlobalStateCondition(met bool, message string) {
 		Message:            message,
 	})
 }
+
+func (v *VRGInstance) isGlobalVGRStateMatched(
+	status *volrep.VolumeReplicationStatus, desiredState ramendrv1alpha1.ReplicationState,
+) bool {
+	switch desiredState {
+	case ramendrv1alpha1.Primary:
+		return status.State == volrep.PrimaryState
+	case ramendrv1alpha1.Secondary:
+		return status.State == volrep.SecondaryState
+	default:
+		return false
+	}
+}
+
+// validateGlobalVGRStatus checks if the global VGR state matches the desired
+// replication state and updates PVC conditions accordingly. Since the storage
+// provider manages replication externally, DataProtected is assumed true for
+// both primary and secondary states, and Resync/Degraded conditions are not
+// checked as the storage provider does not report them.
+func (v *VRGInstance) validateGlobalVGRStatus(
+	volRep client.Object, pvcs []*corev1.PersistentVolumeClaim,
+	status *volrep.VolumeReplicationStatus, state ramendrv1alpha1.ReplicationState,
+) bool {
+	if !v.isGlobalVGRStateMatched(status, state) {
+		return false
+	}
+
+	dataReadyMsg := "Global VGR state matches desired replication state"
+	dataProtectedMsg := "Data protection is assumed for global VGR"
+
+	for idx := range pvcs {
+		pvc := pvcs[idx]
+
+		v.updatePVCDataReadyCondition(pvc.Namespace, pvc.Name, VRGConditionReasonReady, dataReadyMsg)
+		v.updatePVCDataProtectedCondition(pvc.Namespace, pvc.Name, VRGConditionReasonDataProtected, dataProtectedMsg)
+		v.updatePVCLastSyncCounters(pvc.Namespace, pvc.Name, status)
+	}
+
+	v.log.Info(dataReadyMsg, "vgr", volRep.GetName(), "namespace", volRep.GetNamespace(), "state", state)
+
+	return true
+}
