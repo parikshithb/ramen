@@ -6,6 +6,7 @@ package controllers
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	volrep "github.com/csi-addons/kubernetes-csi-addons/api/replication.storage/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,6 +20,11 @@ import (
 
 // VRG and DRPC label to associate them with a shared VolumeGroupReplication resource.
 const GlobalVGRLabel = "ramendr.openshift.io/global-vgr"
+
+// globalVGRSyncCheckDelay is the default interval for refreshing lastGroupSyncTime
+// when the external storage provider does not report per-PVC sync times and the
+// schedulingInterval is zero.
+const globalVGRSyncCheckDelay = 5 * time.Minute
 
 func (v *VRGInstance) globalVGRLabel() string {
 	return v.instance.GetLabels()[GlobalVGRLabel]
@@ -240,4 +246,31 @@ func (v *VRGInstance) validateGlobalVGRStatus(
 	v.log.Info(dataReadyMsg, "vgr", volRep.GetName(), "namespace", volRep.GetNamespace(), "state", state)
 
 	return true
+}
+
+// globalVGRFallbackSyncTime returns a fallback lastGroupSyncTime for global VGRs.
+// Reuses the existing value if still within globalVGRSyncCheckDelay to avoid
+// unnecessary API writes, otherwise returns current time.
+func (v *VRGInstance) globalVGRFallbackSyncTime() *metav1.Time {
+	existing := v.instance.Status.LastGroupSyncTime
+	if existing != nil && time.Since(existing.Time) < globalVGRSyncCheckDelay {
+		return existing
+	}
+
+	now := metav1.Now()
+
+	v.log.Info("Global VGR: updating lastGroupSyncTime, no per PVC sync time available")
+
+	return &now
+}
+
+// globalVGRRequeueDelay returns the remaining time until the next lastGroupSyncTime
+// refresh is needed. Returns 0 if no timestamp exists yet.
+func (v *VRGInstance) globalVGRRequeueDelay() time.Duration {
+	existing := v.instance.Status.LastGroupSyncTime
+	if existing == nil {
+		return 0
+	}
+
+	return max(0, time.Until(existing.Time.Add(globalVGRSyncCheckDelay)))
 }

@@ -1651,6 +1651,10 @@ func (r *DRPlacementControlReconciler) setDRPCMetrics(ctx context.Context,
 		return nil
 	}
 
+	if drpc.GetLabels()[GlobalVGRLabel] != "" {
+		return nil
+	}
+
 	log.Info("setting SyncMetrics")
 
 	syncMetrics := r.createSyncMetricsInstance(drPolicy, drpc)

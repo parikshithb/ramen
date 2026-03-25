@@ -1471,6 +1471,10 @@ func (v *VRGInstance) processAsPrimary() ctrl.Result {
 	if !v.result.Requeue {
 		util.ReportIfNotPresent(v.reconciler.eventRecorder, v.instance, corev1.EventTypeNormal,
 			util.EventReasonPrimarySuccess, "Primary Success")
+
+		if v.hasGlobalVGRLabel() {
+			v.result.RequeueAfter = v.globalVGRRequeueDelay()
+		}
 	}
 
 	return v.updateVRGConditionsAndStatus(v.result)
@@ -2166,6 +2170,13 @@ func (v *VRGInstance) updateVRGLastGroupSyncTime() {
 
 		if protectedPVC.LastSyncTime != nil && protectedPVC.LastSyncTime.Before(leastLastSyncTime) {
 			leastLastSyncTime = protectedPVC.LastSyncTime
+		}
+	}
+
+	// For global VGRs, the external controller may not provide lastSyncTime per PVC.
+	if leastLastSyncTime == nil {
+		if v.hasGlobalVGRLabel() {
+			leastLastSyncTime = v.globalVGRFallbackSyncTime()
 		}
 	}
 
