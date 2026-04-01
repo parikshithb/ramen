@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -131,4 +132,29 @@ func (d *DRPCInstance) setGlobalActionCondition(met bool, message string) {
 
 	addOrUpdateCondition(&d.instance.Status.Conditions, rmn.ConditionGlobalAction,
 		d.instance.Generation, status, reason, message)
+}
+
+// setGlobalActionMetric sets the global action consensus metric for a DRPC.
+// 1 indicates consensus reached, 0 indicates blocked. Only emitted for global VGR DRPCs.
+func (r *DRPlacementControlReconciler) setGlobalActionMetric(
+	drpc *rmn.DRPlacementControl, metric *GlobalActionMetrics, log logr.Logger,
+) {
+	if metric == nil {
+		return
+	}
+
+	log.Info(fmt.Sprintf("Setting metric: (%s)", GlobalActionStatus))
+
+	consensus := 0
+
+	for idx := range drpc.Status.Conditions {
+		if drpc.Status.Conditions[idx].Type == rmn.ConditionGlobalAction &&
+			drpc.Status.Conditions[idx].Status == metav1.ConditionTrue {
+			consensus = 1
+
+			break
+		}
+	}
+
+	metric.GlobalActionStatus.Set(float64(consensus))
 }
